@@ -10,6 +10,7 @@
             "includePath": [
                 "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/include",
                 "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/src",
+                "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/.pio/libdeps/esp32doit-devkit-v1/CoopTask/src",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/config",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
@@ -219,6 +220,7 @@
                 "path": [
                     "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/include",
                     "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/src",
+                    "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/.pio/libdeps/esp32doit-devkit-v1/CoopTask/src",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/config",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
