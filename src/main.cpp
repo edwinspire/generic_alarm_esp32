@@ -6,11 +6,10 @@ enum ZoneStatus
 {
   TROUBLE,
   NORMAL,
-  ALARM
+  ALARM,
+  UNKNOWN
 };
-const int potPin = 34; // Input 34 is zone sensor
-int z1Value = 0;
-int z1Status = 0;
+const int Zone01 = 34; // Input 34 is zone sensor
 
 void setup()
 {
@@ -19,41 +18,34 @@ void setup()
   delay(1000);
 }
 
-ZoneStatus GetZoneStatus(int value)
+void GetZoneStatus(int zone)
 {
+  ZoneStatus zs = ZoneStatus::UNKNOWN;
+  int valuez = analogRead(zone);
+  Serial.println(valuez);
 
-  if (value > 4000)
+  if (valuez > 4000)
   {
-    return ZoneStatus::ALARM;
+    zs = ZoneStatus::ALARM;
   }
-  else if (value < 1800)
+  else if (valuez < 1800)
   {
-    return ZoneStatus::TROUBLE;
+    zs = ZoneStatus::TROUBLE;
   }
   else
   {
-    return ZoneStatus::NORMAL;
+    zs = ZoneStatus::NORMAL;
   }
-}
 
-void loop()
-{
-  // digitalWrite(LED, HIGH);
-  // delay(1000);
-  // digitalWrite(LED, LOW);
-  // delay(500);
-  z1Value = analogRead(potPin);
-  Serial.println(z1Value);
-
-  switch (GetZoneStatus(z1Value))
+  switch (zs)
   {
   case ZoneStatus::ALARM:
-    Serial.println("ALARM");
+    Serial.println("ALARM!");
     digitalWrite(LED, HIGH);
     delay(1000);
     break;
   case ZoneStatus::TROUBLE:
-    Serial.println("TROUBLE");
+    Serial.println("TROUBLE!!");
     digitalWrite(LED, HIGH);
     delay(500);
     digitalWrite(LED, LOW);
@@ -67,4 +59,13 @@ void loop()
     delay(1000);
     break;
   }
+}
+
+void loop()
+{
+  // digitalWrite(LED, HIGH);
+  // delay(1000);
+  // digitalWrite(LED, LOW);
+  // delay(500);
+  GetZoneStatus(Zone01);
 }
