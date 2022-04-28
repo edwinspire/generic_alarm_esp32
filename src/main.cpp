@@ -1,24 +1,11 @@
 #include <Arduino.h>
-// Include CoopTask since we want to manage multiple tasks.
-#include <CoopTask.h>
-#include <CoopSemaphore.h>
-
-#if defined(ARDUINO_attiny)
-#define LED_BUILTIN 1
-#endif
-
-#if defined(ARDUINO_AVR_MICRO)
-#define STACKSIZE_8BIT 92
-#else
-#define STACKSIZE_8BIT 128
-#endif
+#include <string>
 
 #define LED 2
 
-void GetZoneStatus(int zone);
-
-CoopSemaphore taskSema(1, 1);
-int taskToken = 1;
+const int Zone01 = 34; // Input 34 is zone sensor
+const int Zone02 = 35; // Input 35 is zone sensor
+const int Zone03 = 36; // Input 36 is zone sensor
 
 enum ZoneStatus
 {
@@ -28,144 +15,89 @@ enum ZoneStatus
   UNKNOWN
 };
 
-const int Zone01 = 34; // Input 34 is zone sensor
-const int Zone02 = 35; // Input 34 is zone sensor
-const int Zone03 = 36; // Input 34 is zone sensor
-
-void GetZoneStatus(int zone)
+struct Zone
 {
-  ZoneStatus zs = ZoneStatus::UNKNOWN;
-  int valuez = analogRead(zone);
-  Serial.println(valuez);
+  int pin;
+  String zone_label;
+  long interval;
+  long last_time;
+  ZoneStatus status;
+};
 
-  if (valuez > 4000)
-  {
-    zs = ZoneStatus::ALARM;
-  }
-  else if (valuez < 1800)
-  {
-    zs = ZoneStatus::TROUBLE;
-  }
-  else
-  {
-    zs = ZoneStatus::NORMAL;
-  }
+Zone zones[3] = {
+    {Zone01, "Zone 01", 500, 0, ZoneStatus::UNKNOWN},
+    {Zone02, "Zone 02", 1000, 0, ZoneStatus::UNKNOWN},
+    {Zone03, "Zone 03", 5000, 0, ZoneStatus::UNKNOWN},
+};
 
-  switch (zs)
-  {
-  case ZoneStatus::ALARM:
-    Serial.println("ALARM! " + String(zone));
-    //   digitalWrite(LED, HIGH);
-    // delay(1000);
-    break;
-  case ZoneStatus::TROUBLE:
-    Serial.println("TROUBLE!! " + String(zone));
-    //    digitalWrite(LED, HIGH);
-    // delay(500);
-    // digitalWrite(LED, LOW);
-    // delay(500);
-    break;
-  case ZoneStatus::NORMAL:
-    Serial.println("NORMAL " + String(zone));
-    // digitalWrite(LED, HIGH);
-    // delay(1000);
-    // digitalWrite(LED, LOW);
-    // delay(1000);
-    break;
-  }
-}
+void GetZoneStatus(int numzone);
 
-// Task no.1: blink LED with 1 second delay.
-void z01()
+void GetZoneStatus(int numzone)
 {
-  for (;;) // explicitly run forever without returning
+  if (millis() - zones[numzone].last_time > zones[numzone].interval)
   {
-    taskSema.wait();
-    if (1 != taskToken)
+    zones[numzone].last_time = millis();
+
+    int valuez = analogRead(zones[numzone].pin);
+    // int valuez = 777;
+    Serial.println(valuez);
+
+    if (valuez > 4000)
     {
-      taskSema.post();
-      yield();
-      continue;
+      zones[numzone].status = ZoneStatus::ALARM;
     }
-    delay(500);
-    GetZoneStatus(Zone01);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(500);
-
-    taskToken = 2;
-    taskSema.post();
-  }
-}
-
-void z02()
-{
-  for (;;) // explicitly run forever without returning
-  {
-    // Serial.println("Z02 " + String(taskToken));
-
-    taskSema.wait();
-    if (2 != taskToken)
+    else if (valuez < 1800)
     {
-      taskSema.post();
-      yield();
-      continue;
+      zones[numzone].status = ZoneStatus::TROUBLE;
     }
-    delay(500);
-    GetZoneStatus(Zone02);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(1000);
-
-    taskToken = 3;
-    taskSema.post();
-  }
-}
-
-void z03()
-{
-  for (;;) // explicitly run forever without returning
-  {
-    taskSema.wait();
-    if (3 != taskToken)
+    else
     {
-      taskSema.post();
-      yield();
-      continue;
+      zones[numzone].status = ZoneStatus::NORMAL;
     }
 
-    delay(500);
-    GetZoneStatus(Zone03);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(5000);
-
-    taskToken = 1;
-    taskSema.post();
+    switch (zones[numzone].status)
+    {
+    case ZoneStatus::ALARM:
+      Serial.println("ALARM! " + zones[numzone].zone_label);
+      //   digitalWrite(LED, HIGH);
+      // delay(1000);
+      break;
+    case ZoneStatus::TROUBLE:
+      Serial.println("TROUBLE!! " + zones[numzone].zone_label);
+      //    digitalWrite(LED, HIGH);
+      // delay(500);
+      // digitalWrite(LED, LOW);
+      // delay(500);
+      break;
+    case ZoneStatus::NORMAL:
+      Serial.println("NORMAL " + zones[numzone].zone_label);
+      // digitalWrite(LED, HIGH);
+      // delay(1000);
+      // digitalWrite(LED, LOW);
+      // delay(1000);
+      break;
+    }
   }
 }
 
-BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 2048 : STACKSIZE_8BIT>> task1("Z01", z01);
-BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 2048 : STACKSIZE_8BIT>> task2("Z02", z02);
-BasicCoopTask<CoopTaskStackAllocatorFromLoop<sizeof(unsigned) >= 4 ? 2048 : STACKSIZE_8BIT>> task3("Z03", z03);
+
 
 void setup()
 {
   pinMode(LED, OUTPUT);
   Serial.begin(115200);
 
-  // Add "loop1", "loop2" and "loop3" to CoopTask scheduling.
-  // "loop" is always started by default, and is not under the control of CoopTask.
-  task1.scheduleTask();
-  task2.scheduleTask();
-  task3.scheduleTask();
-
   delay(1000);
 }
+
 void loop()
 {
-  // digitalWrite(LED, HIGH);
-  // delay(1000);
-  // digitalWrite(LED, LOW);
-  // delay(500);
-  // GetZoneStatus(Zone01);
-  // loops forever by default
-  runCoopTasks();
+  int nz = sizeof(zones) / sizeof(Zone);
+
+  for (int i = 0; i < nz; i++)
+  {
+    GetZoneStatus(i);
+    delay(100);
+  }
+  delay(500);
 }

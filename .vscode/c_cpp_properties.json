@@ -10,7 +10,7 @@
             "includePath": [
                 "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/include",
                 "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/src",
-                "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/.pio/libdeps/esp32doit-devkit-v1/CoopTask/src",
+                "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/.pio/libdeps/esp32doit-devkit-v1/TaskScheduler/src",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/config",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
@@ -182,6 +182,7 @@
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/fb_gfx/include",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/cores/esp32",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/variants/doitESP32devkitV1",
+                "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/.pio/libdeps/esp32doit-devkit-v1/CoopTask/src",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/AsyncUDP/src",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
@@ -220,7 +221,7 @@
                 "path": [
                     "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/include",
                     "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/src",
-                    "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/.pio/libdeps/esp32doit-devkit-v1/CoopTask/src",
+                    "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/.pio/libdeps/esp32doit-devkit-v1/TaskScheduler/src",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/config",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
@@ -392,6 +393,7 @@
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/fb_gfx/include",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/cores/esp32",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/variants/doitESP32devkitV1",
+                    "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/.pio/libdeps/esp32doit-devkit-v1/CoopTask/src",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/AsyncUDP/src",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
