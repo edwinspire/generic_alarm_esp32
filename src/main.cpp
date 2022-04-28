@@ -11,6 +11,12 @@ int red_light_pin = 4;
 int green_light_pin = 5;
 int blue_light_pin = 18;
 
+enum SensorType
+{
+  NORMALLY_OPEN,
+  NORMALLY_CLOSED
+};
+
 enum ZoneStatus
 {
   TROUBLE,
@@ -26,10 +32,11 @@ struct Zone
   long interval;
   long last_time;
   ZoneStatus status;
+  SensorType sensor_type;
 };
 
 Zone zones[1] = {
-    {Zone01, "Zone 01", 500, 0, ZoneStatus::UNKNOWN}
+    {Zone01, "Zone 01", 500, 0, ZoneStatus::UNKNOWN, SensorType::NORMALLY_OPEN},
     //{Zone02, "Zone 02", 1000, 0, ZoneStatus::UNKNOWN},
     //{Zone03, "Zone 03", 5000, 0, ZoneStatus::UNKNOWN},
 };
@@ -46,17 +53,25 @@ void GetZoneStatus(int numzone)
     // int valuez = 777;
     Serial.println(valuez);
 
-    if (valuez > 4000)
+    if (valuez > 4000 && zones[numzone].sensor_type == SensorType::NORMALLY_CLOSED)
+    {
+      zones[numzone].status = ZoneStatus::NORMAL;
+    }
+    else if (valuez > 1700 && valuez < 1900 && zones[numzone].sensor_type == SensorType::NORMALLY_OPEN)
+    {
+      zones[numzone].status = ZoneStatus::NORMAL;
+    }
+    else if (valuez > 4000 && zones[numzone].sensor_type == SensorType::NORMALLY_OPEN)
     {
       zones[numzone].status = ZoneStatus::ALARM;
     }
-    else if (valuez < 1800)
+    else if (valuez > 1700 && valuez < 1900 && zones[numzone].sensor_type == SensorType::NORMALLY_CLOSED)
     {
-      zones[numzone].status = ZoneStatus::TROUBLE;
+      zones[numzone].status = ZoneStatus::ALARM;
     }
     else
     {
-      zones[numzone].status = ZoneStatus::NORMAL;
+      zones[numzone].status = ZoneStatus::TROUBLE;
     }
 
     switch (zones[numzone].status)
