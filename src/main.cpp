@@ -14,7 +14,8 @@ int blue_light_pin = 18;
 enum SensorType
 {
   NORMALLY_OPEN,
-  NORMALLY_CLOSED
+  NORMALLY_CLOSED,
+  NOT_USED
 };
 
 enum ZoneStatus
@@ -24,6 +25,8 @@ enum ZoneStatus
   ALARM,
   UNKNOWN
 };
+
+ZoneStatus generalStatus = ZoneStatus::UNKNOWN;
 
 struct Zone
 {
@@ -35,9 +38,9 @@ struct Zone
   SensorType sensor_type;
 };
 
-Zone zones[1] = {
-    {Zone01, "Zone 01", 500, 0, ZoneStatus::UNKNOWN, SensorType::NORMALLY_OPEN},
-    //{Zone02, "Zone 02", 1000, 0, ZoneStatus::UNKNOWN},
+Zone zones[2] = {
+    {Zone01, "Zone 01", 500, 0, ZoneStatus::UNKNOWN, SensorType::NORMALLY_CLOSED},
+    {Zone02, "Zone 02", 1500, 0, ZoneStatus::UNKNOWN, SensorType::NOT_USED}
     //{Zone03, "Zone 03", 5000, 0, ZoneStatus::UNKNOWN},
 };
 
@@ -45,7 +48,7 @@ void GetZoneStatus(int numzone);
 
 void GetZoneStatus(int numzone)
 {
-  if (millis() - zones[numzone].last_time > zones[numzone].interval)
+  if (millis() - zones[numzone].last_time > zones[numzone].interval && zones[numzone].sensor_type != SensorType::NOT_USED)
   {
     zones[numzone].last_time = millis();
 
@@ -144,6 +147,64 @@ void setup()
   delay(1000);
 }
 
+void GeneralStatusLed()
+{
+  generalStatus = ZoneStatus::UNKNOWN;
+  int nz = sizeof(zones) / sizeof(Zone);
+
+  // Verifica si hay alguna zona con problema
+  for (int i = 0; i < nz; i++)
+  {
+    if (zones[i].status == ZoneStatus::TROUBLE)
+    {
+      generalStatus = ZoneStatus::TROUBLE;
+      break;
+    }
+  }
+
+  if (generalStatus == ZoneStatus::UNKNOWN)
+  {
+    // Verifica si hay alguna zona en alarma
+    for (int i = 0; i < nz; i++)
+    {
+      if (zones[i].status == ZoneStatus::ALARM)
+      {
+        generalStatus = ZoneStatus::ALARM;
+        break;
+      }
+    }
+  }
+
+  if (generalStatus == ZoneStatus::UNKNOWN)
+  {
+    // Verifica si hay alguna zona en alarma
+    for (int i = 0; i < nz; i++)
+    {
+      if (zones[i].status == ZoneStatus::NORMAL)
+      {
+        generalStatus = ZoneStatus::NORMAL;
+        break;
+      }
+    }
+  }
+
+  switch (generalStatus)
+  {
+  case ZoneStatus::ALARM:
+    RGB_color(255, 0, 0); // Red
+    break;
+  case ZoneStatus::TROUBLE:
+    RGB_color(0, 0, 255); // Blue
+    break;
+  case ZoneStatus::NORMAL:
+    RGB_color(0, 255, 0); // Green
+    break;
+  case ZoneStatus::UNKNOWN:
+    RGB_color(0, 0, 0); // Blue
+    break;
+  }
+}
+
 void loop()
 {
   int nz = sizeof(zones) / sizeof(Zone);
@@ -154,32 +215,9 @@ void loop()
     GetZoneStatus(i);
   }
 
-  // Muestra en LED el estado de cada zona
-  for (int i = 0; i < nz; i++)
-  {
-    if (zones[i].status == ZoneStatus::TROUBLE)
-    {
-      RGB_color(0, 0, 255); // Blue
-      break;
-    }
-
-    else if (zones[i].status == ZoneStatus::ALARM)
-    {
-      RGB_color(255, 0, 0); // Red
-      break;
-    }
-    else if (zones[i].status == ZoneStatus::NORMAL)
-    {
-      RGB_color(0, 255, 0); // Green
-      break;
-    }
-    else
-    {
-      RGB_color(0, 0, 0);
-    }
-  }
-
   LedBlink();
+
+  GeneralStatusLed();
   /*
    RGB_color(255, 0, 0); // Red
     delay(500);
@@ -199,5 +237,5 @@ void loop()
     delay(500);
     */
 
-  delay(500);
+  delay(100);
 }
