@@ -11,10 +11,11 @@ const int Zone03 = 36;     // Input 36 is zone sensor
 
 int red_light_pin = 4;
 int green_light_pin = 5;
-int blue_light_pin = 18;
+int BuzzerPin = 18;
 // bool SystemArmed = false;
 
 ezOutput MainLED(LED);
+ezOutput BuzzerOUT(BuzzerPin);
 
 enum SensorType
 {
@@ -120,46 +121,13 @@ void GetZoneStatus(int numzone)
   }
 }
 
-void ZoneTrouble(bool trouble)
-{
-  // Serial.println("Zona con problema "+String(trouble));
-  static long blink_zone_trouble_last_time = 0;
-  if (millis() - blink_zone_trouble_last_time > 1600)
-  {
-    blink_zone_trouble_last_time = millis();
-
-    if (trouble)
-    {
-      // Serial.println("Hay una zona con problemma");
-      digitalWrite(blue_light_pin, !digitalRead(blue_light_pin));
-    }
-    else
-    {
-      // Serial.println("NOOOO Hay una zona con problemma");
-      digitalWrite(blue_light_pin, LOW);
-    }
-  }
-}
-
-void RGB_color(int red_light_value, int green_light_value, int blue_light_value)
-{
-  static long RGB_color_last_time = 0;
-  if (millis() - RGB_color_last_time > 500)
-  {
-    RGB_color_last_time = millis();
-    analogWrite(red_light_pin, red_light_value);
-    analogWrite(green_light_pin, green_light_value);
-    analogWrite(blue_light_pin, blue_light_value);
-  }
-}
-
 void setup()
 {
   pinMode(LED, OUTPUT);
 
   pinMode(red_light_pin, OUTPUT);
   pinMode(green_light_pin, OUTPUT);
-  pinMode(blue_light_pin, OUTPUT);
+  //  pinMode(blue_light_pin, OUTPUT);
 
   Serial.begin(115200);
   system_status.armed_status = SystemArmedStatus::ARMED;
@@ -208,14 +176,14 @@ void CheckStatusSystem()
     }
   }
 
+  // Emite señal cuando hay zona con problema
   if (system_status.zone_status == Zone::Status::TROUBLE)
   {
-    ZoneTrouble(true);
+    BuzzerOUT.blink(15000, 2000);
   }
   else
   {
-    // digitalWrite(blue_light_pin, LOW);
-    ZoneTrouble(false);
+    BuzzerOUT.low();
   }
 
   // Verifica si hay alguna zona en alarma
@@ -252,6 +220,7 @@ void loop()
 
   //  LedBlink();
   MainLED.loop();
+  BuzzerOUT.loop();
 
   switch (system_status.armed_status)
   {
