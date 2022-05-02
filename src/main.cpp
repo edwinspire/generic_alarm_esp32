@@ -16,7 +16,7 @@ int OUT_02 = 4;  // As digital
 
 // Other config
 bool allow_forced_arming = false; // Allows you to arm the system with open zones.
-float zone_threshold = 20;          // 20%
+float zone_threshold = 20;        // 20%
 
 ezOutput MainLED(LED);
 ezOutput EZ_OUT_01(OUT_01); // Best used to connect a buzzer
@@ -98,7 +98,7 @@ SystemStatus system_status = {SystemArmedStatus::UNDEFINED, false};
 
 Zone::Config zones[2] = {
     {Zone01, "Zone 01", 500, 0, Zone::Status::UNDEFINED, SensorType::NORMALLY_OPEN, Zone::Definition::INSTANT, true, Zone::Attributes::AUDIBLE},
-    {Zone02, "Zone 02", 500, 0, Zone::Status::UNDEFINED, SensorType::NORMALLY_OPEN, Zone::Definition::KEYSWITCH_ARM, false, Zone::Attributes::NONE}};
+    {Zone02, "Zone 02", 600, 0, Zone::Status::UNDEFINED, SensorType::NORMALLY_OPEN, Zone::Definition::KEYSWITCH_ARM, false, Zone::Attributes::NONE}};
 
 // Get status zone
 void GetZoneStatus(int numzone)
@@ -107,10 +107,10 @@ void GetZoneStatus(int numzone)
   {
     zones[numzone].last_time = millis();
     float center = 4096 / 2;
-    float upper_threshold =  center+((zone_threshold/100)*center);
-    float lower_threshold = center-((zone_threshold/100)*center);
+    float upper_threshold = center + ((zone_threshold / 100) * center);
+    float lower_threshold = center - ((zone_threshold / 100) * center);
 
-    //Serial.print("Max " + String(upper_threshold) + " Min " + String(lower_threshold) + "\n\r");
+    // Serial.print("Max " + String(upper_threshold) + " Min " + String(lower_threshold) + "\n\r");
 
     int valuez = analogRead(zones[numzone].pin);
 
@@ -171,8 +171,6 @@ void GetZoneStatus(int numzone)
         }
       }
       break;
-    default:
-      break;
     }
   }
 }
@@ -180,10 +178,6 @@ void GetZoneStatus(int numzone)
 void setup()
 {
   pinMode(LED, OUTPUT);
-
-  //  pinMode(red_light_pin, OUTPUT);
-  //  pinMode(green_light_pin, OUTPUT);
-  //  pinMode(blue_light_pin, OUTPUT);
 
   Serial.begin(115200);
   system_status.armed_status = SystemArmedStatus::UNDEFINED;
@@ -250,26 +244,30 @@ void CheckStatusSystem()
   }
 
   // It emits a signal when any zone is in trouble.
-
-  // Serial.println("system_status.trouble_zone " + String(system_status.trouble_zone));
   if (system_status.trouble_zone > 0)
   {
-    Serial.println("system_status.trouble_zone BLINK ");
-    EZ_OUT_01.blink(3000, 2000);
+    EZ_OUT_01.blink(5000, 2000);
   }
   else
   {
+    Serial.println(">>>>>>> Manda a apagar el LED Problema");
     EZ_OUT_01.low();
   }
 
   CheckKeySwitchZone(nz);
 
   // It emits a signal when any zone is in alarm.
+  /*
+  Serial.println(" system_status.alarm_zone "+String(system_status.alarm_zone));
+  Serial.println(" system_status.alarm_audible "+String(system_status.alarm_audible));
+  Serial.println(" system_status.alarm_pulsed "+String(system_status.alarm_pulsed));
+  */
+
   if (system_status.alarm_zone > 0 && (system_status.armed_status == SystemArmedStatus::ARMED || system_status.armed_status == SystemArmedStatus::ARMED_FORCED || system_status.armed_status == SystemArmedStatus::ARMED_MEMORY_ALARM))
   {
     if (system_status.alarm_audible > 0)
     {
-      EZ_OUT_02.pulse(alarm_time * 1000, 1000);
+      EZ_OUT_02.blink(1000, alarm_time * 1000, 5, 10);
     }
     else if (system_status.alarm_pulsed > 0)
     {
@@ -316,5 +314,5 @@ void loop()
     }
     break;
   }
-  delay(1000);
+  // delay(1000);
 }
