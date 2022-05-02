@@ -16,6 +16,7 @@ int OUT_02 = 4;  // As digital
 
 // Other config
 bool allow_forced_arming = false; // Allows you to arm the system with open zones.
+float zone_threshold = 20;          // 20%
 
 ezOutput MainLED(LED);
 ezOutput EZ_OUT_01(OUT_01); // Best used to connect a buzzer
@@ -105,27 +106,32 @@ void GetZoneStatus(int numzone)
   if (millis() - zones[numzone].last_time > zones[numzone].interval && zones[numzone].definition != Zone::Definition::NO_USED)
   {
     zones[numzone].last_time = millis();
+    float center = 4096 / 2;
+    float upper_threshold =  center+((zone_threshold/100)*center);
+    float lower_threshold = center-((zone_threshold/100)*center);
+
+    //Serial.print("Max " + String(upper_threshold) + " Min " + String(lower_threshold) + "\n\r");
 
     int valuez = analogRead(zones[numzone].pin);
 
-    if (valuez > 4000 && zones[numzone].sensor_type == SensorType::NORMALLY_CLOSED)
+    if (valuez > upper_threshold && zones[numzone].sensor_type == SensorType::NORMALLY_CLOSED)
     {
       zones[numzone].status = Zone::Status::NORMAL;
       Serial.print(zones[numzone].zone_label + " NORMAL > " + String(valuez) + "\n\r");
     }
-    else if (valuez > 1800 && valuez < 3000 && zones[numzone].sensor_type == SensorType::NORMALLY_OPEN)
+    else if (valuez > lower_threshold && valuez < upper_threshold && zones[numzone].sensor_type == SensorType::NORMALLY_OPEN)
     {
       Serial.print(zones[numzone].zone_label + " NORMAL > " + String(valuez) + "\n\r");
       zones[numzone].status = Zone::Status::NORMAL;
     }
-    else if (valuez > 4000 && zones[numzone].sensor_type == SensorType::NORMALLY_OPEN)
+    else if (valuez > upper_threshold && zones[numzone].sensor_type == SensorType::NORMALLY_OPEN)
     {
-      // Serial.print(zones[numzone].zone_label + " ALARM > " + String(valuez) + "\n\r");
+      Serial.print(zones[numzone].zone_label + " ALARM > " + String(valuez) + "\n\r");
       zones[numzone].status = Zone::Status::ALARM;
     }
-    else if (valuez > 1800 && valuez < 3000 && zones[numzone].sensor_type == SensorType::NORMALLY_CLOSED)
+    else if (valuez > lower_threshold && valuez < upper_threshold && zones[numzone].sensor_type == SensorType::NORMALLY_CLOSED)
     {
-      // Serial.print(zones[numzone].zone_label + " ALARM > " + String(valuez) + "\n\r");
+      Serial.print(zones[numzone].zone_label + " ALARM > " + String(valuez) + "\n\r");
       zones[numzone].status = Zone::Status::ALARM;
     }
     else
@@ -245,7 +251,7 @@ void CheckStatusSystem()
 
   // It emits a signal when any zone is in trouble.
 
-  //Serial.println("system_status.trouble_zone " + String(system_status.trouble_zone));
+  // Serial.println("system_status.trouble_zone " + String(system_status.trouble_zone));
   if (system_status.trouble_zone > 0)
   {
     Serial.println("system_status.trouble_zone BLINK ");
@@ -301,7 +307,7 @@ void loop()
   default:
     if (system_status.trouble_zone > 0)
     {
-      MainLED.blink(500, 500, 2, 3);
+      MainLED.blink(500, 500, 1000, 3);
     }
     else
     {
@@ -310,5 +316,5 @@ void loop()
     }
     break;
   }
-   delay(1000);
+  delay(1000);
 }
