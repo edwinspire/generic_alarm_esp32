@@ -166,7 +166,7 @@ void ProcessZoneStatus(int zones_number)
     {
     case Zone::Status::TROUBLE:
       system_status.trouble_zone++;
-      //Serial.print(String(zones[i].zone_label) +" ProcessZoneStatus > " + String(system_status.trouble_zone) + "\n\r");
+      // Serial.print(String(zones[i].zone_label) +" ProcessZoneStatus > " + String(system_status.trouble_zone) + "\n\r");
       break;
     case Zone::Status::ALARM:
       if (zones[i].definition != Zone::Definition::KEYSWITCH_ARM && zones[i].definition != Zone::Definition::KEYSWITCH_ARM && zones[i].definition != Zone::Definition::NO_USED)
@@ -195,6 +195,34 @@ void ProcessZoneStatus(int zones_number)
       break;
     }
   }
+
+  // It emits a signal when any zone is in trouble.
+  if (system_status.trouble_zone > 0)
+  {
+    EZ_OUT_01.blink(5000, 2000);
+  }
+  else
+  {
+    EZ_OUT_01.low();
+  }
+/*
+  // It emits a signal when any zone is in alarm.
+  if (system_status.alarm_zone > 0 && (system_status.armed_status == SystemArmedStatus::ARMED || system_status.armed_status == SystemArmedStatus::ARMED_FORCED || system_status.armed_status == SystemArmedStatus::ARMED_MEMORY_ALARM))
+  {
+    if (system_status.alarm_audible > 0)
+    {
+      EZ_OUT_02.blink(1000, alarm_time * 1000, 5, 10);
+    }
+    else if (system_status.alarm_pulsed > 0)
+    {
+      EZ_OUT_02.blink(3000, 2000, 500, (alarm_time * 1000 * 5)); // alarm_time*1000/5, 5 porque el tiempo de HIGH Y LOW tienen 5 segundos
+    }
+  }
+  else
+  {
+  //  EZ_OUT_02.low();
+  }
+  */
 }
 
 bool CheckKeySwitchZone(int zones_number)
@@ -209,25 +237,29 @@ bool CheckKeySwitchZone(int zones_number)
       KeyFound = true;
       if (zones[i].status == Zone::Status::ALARM && system_status.alarm_zone == 0 && (system_status.armed_status == SystemArmedStatus::DISARMED || system_status.armed_status == SystemArmedStatus::UNDEFINED))
       {
+        Serial.println("Sistema ARMADO");
+        EZ_OUT_02.blink(250, 250, 250, 4);
         system_status.armed_status = SystemArmedStatus::ARMED;
-        EZ_OUT_02.blink(500, 500, 100, 2);
       }
       else if (zones[i].status == Zone::Status::ALARM && system_status.alarm_zone > 0 && allow_forced_arming && (system_status.armed_status == SystemArmedStatus::DISARMED || system_status.armed_status == SystemArmedStatus::UNDEFINED))
       {
+        Serial.println("Sistema ARMADO FORZADO");
         system_status.armed_status = SystemArmedStatus::ARMED_FORCED;
-        EZ_OUT_02.blink(500, 500, 100, 3);
+        EZ_OUT_02.blink(250, 250, 250, 6);
       }
       else if (zones[i].status == Zone::Status::ALARM && system_status.alarm_zone > 0 && !allow_forced_arming && (system_status.armed_status == SystemArmedStatus::DISARMED || system_status.armed_status == SystemArmedStatus::UNDEFINED))
       {
         // system_status.armed_status = SystemArmedStatus::ARMED_FORCED;
-        EZ_OUT_02.blink(500, 500, 100, 3);
-        EZ_OUT_01.blink(500, 500, 100, 3);
+        Serial.println("Sistema ARMADO FORZADO No permitido");
+        EZ_OUT_02.blink(500, 2000, 250, 2);
+        EZ_OUT_01.blink(500, 2000, 250, 2);
       }
       else if (zones[i].status == Zone::Status::NORMAL && system_status.armed_status != SystemArmedStatus::DISARMED)
       {
         system_status.armed_status = SystemArmedStatus::DISARMED;
         ResetSystemStatus();
-        EZ_OUT_02.blink(500, 500, 100, 1);
+        EZ_OUT_02.blink(250, 500, 250, 2);
+        Serial.println("Sistema DESARMADO");
       }
       break;
     }
@@ -237,13 +269,13 @@ bool CheckKeySwitchZone(int zones_number)
 
 void CheckStatusSystem()
 {
-    // Reset status
+  // Reset status
   ResetSystemStatus();
 
-    int nz = sizeof(zones) / sizeof(Zone::Config);
+  int nz = sizeof(zones) / sizeof(Zone::Config);
   int num_zone = 0;
 
-    // Scan all zones to get their status
+  // Scan all zones to get their status
   for (int i = 0; i < nz; i++)
   {
     GetZoneStatus(i);
@@ -251,40 +283,7 @@ void CheckStatusSystem()
 
   ProcessZoneStatus(nz);
 
-  // It emits a signal when any zone is in trouble.
-  if (system_status.trouble_zone > 0)
-  {
-    EZ_OUT_01.blink(5000, 2000);
-  }
-  else
-  {
-    EZ_OUT_01.low();
-  }
-
   CheckKeySwitchZone(nz);
-
-  // It emits a signal when any zone is in alarm.
-  /*
-  Serial.println(" system_status.alarm_zone "+String(system_status.alarm_zone));
-  Serial.println(" system_status.alarm_audible "+String(system_status.alarm_audible));
-  Serial.println(" system_status.alarm_pulsed "+String(system_status.alarm_pulsed));
-  */
-
-  if (system_status.alarm_zone > 0 && (system_status.armed_status == SystemArmedStatus::ARMED || system_status.armed_status == SystemArmedStatus::ARMED_FORCED || system_status.armed_status == SystemArmedStatus::ARMED_MEMORY_ALARM))
-  {
-    if (system_status.alarm_audible > 0)
-    {
-      EZ_OUT_02.blink(1000, alarm_time * 1000, 5, 10);
-    }
-    else if (system_status.alarm_pulsed > 0)
-    {
-      EZ_OUT_02.blink(3000, 2000, 500, (alarm_time * 1000 * 5)); // alarm_time*1000/5, 5 porque el tiempo de HIGH Y LOW tienen 5 segundos
-    }
-  }
-  else
-  {
-    EZ_OUT_02.low();
-  }
 }
 
 void loop()
