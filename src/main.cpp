@@ -1,8 +1,15 @@
 #include <Arduino.h>
 #include <string>
 #include <ezOutput.h>
+#include <WiFi.h>
 
 #define LED 2
+
+// Wifi section
+const char *ssid = "edwinspire";
+const char *password = "Caracol1980";
+
+WiFiServer server(80);
 
 const uint alarm_time = 39; // on seconds
 // Inputs
@@ -95,8 +102,8 @@ struct SystemStatus
 SystemStatus system_status = {SystemArmedStatus::UNDEFINED, false};
 
 Zone::Config zones[2] = {
-    {Zone01, "Zone 01", 250, 0, Zone::Status::UNDEFINED, SensorType::NORMALLY_OPEN, Zone::Definition::INSTANT, true, Zone::Attributes::PULSED},
-    {Zone02, "Zone 02", 500, 0, Zone::Status::UNDEFINED, SensorType::NORMALLY_OPEN, Zone::Definition::KEYSWITCH_ARM, false, Zone::Attributes::NONE}};
+    {Zone01, "Zone 01", 250, 0, Zone::Status::UNDEFINED, SensorType::NORMALLY_OPEN, Zone::Definition::INSTANT, true, Zone::Attributes::AUDIBLE},
+    {Zone02, "Zone 02", 500, 0, Zone::Status::UNDEFINED, SensorType::NORMALLY_OPEN, Zone::Definition::ALWAYS_ARMED, false, Zone::Attributes::PULSED}};
 
 // Get status zone
 void GetZoneStatus(int numzone)
@@ -146,6 +153,26 @@ void setup()
 
   Serial.begin(115200);
   system_status.armed_status = SystemArmedStatus::UNDEFINED;
+
+  Serial.println();
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected.");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  server.begin();
 }
 
 void ResetSystemStatus()
@@ -234,7 +261,7 @@ void ProcessZoneStatus(int zones_number)
     MainLED.blink(1500, 2000);
     break;
   case SystemArmedStatus::ARMED_MEMORY_ALARM:
-    //Serial.println("SystemArmedStatus::ARMED_MEMORY_ALARM");
+    // Serial.println("SystemArmedStatus::ARMED_MEMORY_ALARM");
     MainLED.blink(1500, 3000);
     break;
   default:
@@ -251,6 +278,57 @@ void ProcessZoneStatus(int zones_number)
   }
 }
 
+// Sin probar
+void ArmForcedSystemNoAllowed()
+{
+  Serial.println("Sistema ARMADO FORZADO No permitido");
+  EZ_OUT_02.low();
+  EZ_OUT_02.blink(500, 2000, 250, 2);
+  EZ_OUT_01.blink(500, 2000, 250, 2);
+}
+
+// Sin probar
+void ArmForcedSystem()
+{
+  Serial.println("Sistema ARMADO FORZADO");
+  EZ_OUT_02.low();
+  system_status.armed_status = SystemArmedStatus::ARMED_FORCED;
+  EZ_OUT_02.blink(250, 250, 250, 6);
+}
+
+// Probado
+void ArmSystem()
+{
+
+  if (system_status.armed_status != SystemArmedStatus::ARMED)
+  {
+    Serial.println("Sistema ARMADO");
+    EZ_OUT_02.low();
+    EZ_OUT_02.blink(250, 250, 250, 4);
+    system_status.armed_status = SystemArmedStatus::ARMED;
+  }
+  else
+  {
+    Serial.println("Sistema ya se encuentra ARMADO");
+  }
+}
+
+void DisarmSystem()
+{
+  if (system_status.armed_status != SystemArmedStatus::DISARMED)
+  {
+    system_status.armed_status = SystemArmedStatus::DISARMED;
+    ResetSystemStatus();
+    EZ_OUT_02.low();
+    EZ_OUT_02.blink(250, 250, 350, 2);
+    Serial.println("Sistema DESARMADO");
+  }
+  else
+  {
+    Serial.println("Ya se encuentra DESARMADO");
+  }
+}
+
 bool CheckKeySwitchZone(int zones_number)
 {
   bool KeyFound = false;
@@ -263,33 +341,20 @@ bool CheckKeySwitchZone(int zones_number)
       KeyFound = true;
       if (zones[i].status == Zone::Status::ALARM && system_status.alarm_zone == 0 && (system_status.armed_status == SystemArmedStatus::DISARMED || system_status.armed_status == SystemArmedStatus::UNDEFINED))
       {
-        Serial.println("Sistema ARMADO");
-        EZ_OUT_02.low();
-        EZ_OUT_02.blink(250, 250, 250, 4);
-        system_status.armed_status = SystemArmedStatus::ARMED;
+        ArmSystem();
       }
       else if (zones[i].status == Zone::Status::ALARM && system_status.alarm_zone > 0 && allow_forced_arming && (system_status.armed_status == SystemArmedStatus::DISARMED || system_status.armed_status == SystemArmedStatus::UNDEFINED))
       {
-        Serial.println("Sistema ARMADO FORZADO");
-        EZ_OUT_02.low();
-        system_status.armed_status = SystemArmedStatus::ARMED_FORCED;
-        EZ_OUT_02.blink(250, 250, 250, 6);
+        ArmForcedSystem();
       }
       else if (zones[i].status == Zone::Status::ALARM && system_status.alarm_zone > 0 && !allow_forced_arming && (system_status.armed_status == SystemArmedStatus::DISARMED || system_status.armed_status == SystemArmedStatus::UNDEFINED))
       {
         // system_status.armed_status = SystemArmedStatus::ARMED_FORCED;
-        Serial.println("Sistema ARMADO FORZADO No permitido");
-        EZ_OUT_02.low();
-        EZ_OUT_02.blink(500, 2000, 250, 2);
-        EZ_OUT_01.blink(500, 2000, 250, 2);
+        ArmForcedSystemNoAllowed();
       }
       else if (zones[i].status == Zone::Status::NORMAL && system_status.armed_status != SystemArmedStatus::DISARMED)
       {
-        system_status.armed_status = SystemArmedStatus::DISARMED;
-        ResetSystemStatus();
-        EZ_OUT_02.low();
-        EZ_OUT_02.blink(250, 250, 350, 2);
-        Serial.println("Sistema DESARMADO");
+        DisarmSystem();
       }
       break;
     }
@@ -316,6 +381,71 @@ void CheckStatusSystem()
   CheckKeySwitchZone(nz);
 }
 
+void WifiLoop()
+{
+  WiFiClient client = server.available(); // listen for incoming clients
+
+  if (client)
+  {                                // if you get a client,
+    Serial.println("New Client."); // print a message out the serial port
+    String currentLine = "";       // make a String to hold incoming data from the client
+    while (client.connected())
+    { // loop while the client's connected
+      if (client.available())
+      {                         // if there's bytes to read from the client,
+        char c = client.read(); // read a byte, then
+        Serial.write(c);        // print it out the serial monitor
+        if (c == '\n')
+        { // if the byte is a newline character
+
+          // if the current line is blank, you got two newline characters in a row.
+          // that's the end of the client HTTP request, so send a response:
+          if (currentLine.length() == 0)
+          {
+            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
+            // and a content-type so the client knows what's coming, then a blank line:
+            client.println("HTTP/1.1 200 OK");
+            client.println("Content-type:text/html");
+            client.println();
+
+            // the content of the HTTP response follows the header:
+            client.print("Click <a href=\"/H\">here</a> Armar.<br>");
+            client.print("Click <a href=\"/L\">here</a> Desarmar.<br>");
+
+            // The HTTP response ends with another blank line:
+            client.println();
+            // break out of the while loop:
+            break;
+          }
+          else
+          { // if you got a newline, then clear currentLine:
+            currentLine = "";
+          }
+        }
+        else if (c != '\r')
+        {                   // if you got anything else but a carriage return character,
+          currentLine += c; // add it to the end of the currentLine
+        }
+
+        // Check to see if the client request was "GET /H" or "GET /L":
+        if (currentLine.endsWith("GET /H"))
+        {
+          // digitalWrite(5, HIGH); // GET /H turns the LED on
+          ArmSystem();
+        }
+        if (currentLine.endsWith("GET /L"))
+        {
+          // digitalWrite(5, LOW); // GET /L turns the LED off
+          DisarmSystem();
+        }
+      }
+    }
+    // close the connection:
+    client.stop();
+    Serial.println("Client Disconnected.");
+  }
+}
+
 void loop()
 {
   MainLED.loop();
@@ -323,6 +453,6 @@ void loop()
   EZ_OUT_02.loop();
 
   CheckStatusSystem();
-
+  WifiLoop();
   // delay(1000);
 }
