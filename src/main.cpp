@@ -2,12 +2,22 @@
 #include <string>
 #include <ezOutput.h>
 #include <WiFi.h>
+#include <WiFiClient.h>
+#include <WiFiAP.h>
 
 #define LED 2
 
 // Wifi section
-const char *ssid = "edwinspire";
-const char *password = "Caracol1980";
+/*
+  Steps:
+  1. Connect to the access point "yourAp"
+  2. Point your web browser to http://192.168.4.1/H to turn the LED on or http://192.168.4.1/L to turn it off
+     OR
+     Run raw TCP "GET /H" and "GET /L" on PuTTY terminal with 192.168.4.1 as IP address and 80 as port
+     */
+// Set these to your desired credentials.
+const char *ssid = "ESP32-AP";
+const char *password = "1234567890ABCDEF";
 
 WiFiServer server(80);
 
@@ -122,11 +132,11 @@ void GetZoneStatus(int numzone)
     if (valuez > upper_threshold && zones[numzone].sensor_type == SensorType::NORMALLY_CLOSED)
     {
       zones[numzone].status = Zone::Status::NORMAL;
-      Serial.print(zones[numzone].zone_label + " NORMAL > " + String(valuez) + "\n\r");
+      //     Serial.print(zones[numzone].zone_label + " NORMAL > " + String(valuez) + "\n\r");
     }
     else if (valuez > lower_threshold && valuez < upper_threshold && zones[numzone].sensor_type == SensorType::NORMALLY_OPEN)
     {
-      Serial.print(zones[numzone].zone_label + " NORMAL > " + String(valuez) + "\n\r");
+      //      Serial.print(zones[numzone].zone_label + " NORMAL > " + String(valuez) + "\n\r");
       zones[numzone].status = Zone::Status::NORMAL;
     }
     else if (valuez > upper_threshold && zones[numzone].sensor_type == SensorType::NORMALLY_OPEN)
@@ -154,25 +164,16 @@ void setup()
   Serial.begin(115200);
   system_status.armed_status = SystemArmedStatus::UNDEFINED;
 
-  Serial.println();
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
+  Serial.println("Configuring access point...");
 
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    Serial.print(".");
-  }
-
-  Serial.println("");
-  Serial.println("WiFi connected.");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-
+  // You can remove the password parameter if you want the AP to be open.
+  WiFi.softAP(ssid, password);
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(myIP);
   server.begin();
+
+  Serial.println("Server started");
 }
 
 void ResetSystemStatus()
@@ -411,6 +412,7 @@ void WifiLoop()
             // the content of the HTTP response follows the header:
             client.print("Click <a href=\"/H\">here</a> Armar.<br>");
             client.print("Click <a href=\"/L\">here</a> Desarmar.<br>");
+            client.print("Click <a href=\"/STATUS\">here</a> Status.<br>");
 
             // The HTTP response ends with another blank line:
             client.println();
@@ -437,6 +439,21 @@ void WifiLoop()
         {
           // digitalWrite(5, LOW); // GET /L turns the LED off
           DisarmSystem();
+        }
+
+        if (currentLine.endsWith("GET /STATUS"))
+        {
+          client.println("HTTP/1.1 200 OK");
+          client.println("Content-type:application/json");
+          client.println();
+
+          // the content of the HTTP response follows the header:
+          client.print("{\"status\":" + String(system_status.armed_status) + "}");
+
+          // The HTTP response ends with another blank line:
+          client.println();
+          // break out of the while loop:
+          break;
         }
       }
     }
