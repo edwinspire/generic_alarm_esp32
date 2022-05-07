@@ -4,6 +4,8 @@
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiAP.h>
+#include <SPI.h>
+#include <MFRC522.h>
 
 #define LED 2
 
@@ -21,6 +23,18 @@ const char *password = "1234567890ABCDEF";
 
 WiFiServer server(80);
 
+// RFID section
+#define SS_PIN 5   // ESP32 pin GIOP5
+#define RST_PIN 27 // ESP32 pin GIOP27
+
+MFRC522 rfid(SS_PIN, RST_PIN);
+
+byte managerKeyUID[4] = {0x7C, 0x2F, 0xD6, 0x21}; // Key
+byte secretaryKeyUID[4] = {0x30, 0x01, 0x8B, 0x15};
+
+String KeysUID[2] = {"7C2FD621"};
+
+// Alarm Section
 const uint alarm_time = 39; // on seconds
 // Inputs
 const int Zone01 = 34; // Input 34 is zone sensor
@@ -28,7 +42,7 @@ const int Zone02 = 35; // Input 35 is zone sensor
 const int Zone03 = 36; // Input 36 is zone sensor
 
 // Outputs
-int OUT_01 = 18; // As digital
+int OUT_01 = 22; // As digital
 int OUT_02 = 4;  // As digital
 
 // Other config
@@ -38,6 +52,13 @@ float zone_threshold = 25;        // 25%
 ezOutput MainLED(LED);
 ezOutput EZ_OUT_01(OUT_01); // Best used to connect a buzzer
 ezOutput EZ_OUT_02(OUT_02); // Best used to connect a buzzer
+
+/**/
+const char CONFIG[] PROGMEM = R"(
+  Some formatted text here !
+  makes life easy for HTML
+  servers, for example.
+  )";
 
 enum SensorType
 {
@@ -163,6 +184,11 @@ void setup()
 
   Serial.begin(115200);
   system_status.armed_status = SystemArmedStatus::UNDEFINED;
+
+  SPI.begin();     // init SPI bus
+  rfid.PCD_Init(); // init MFRC522
+
+  Serial.println("Tap an RFID/NFC tag on the RFID-RC522 reader");
 
   Serial.println("Configuring access point...");
 
@@ -305,7 +331,7 @@ void ArmSystem()
   {
     Serial.println("Sistema ARMADO");
     EZ_OUT_02.low();
-    EZ_OUT_02.blink(250, 250, 250, 4);
+    EZ_OUT_02.blink(250, 250, 250, 2);
     system_status.armed_status = SystemArmedStatus::ARMED;
   }
   else
@@ -321,7 +347,7 @@ void DisarmSystem()
     system_status.armed_status = SystemArmedStatus::DISARMED;
     ResetSystemStatus();
     EZ_OUT_02.low();
-    EZ_OUT_02.blink(250, 250, 350, 2);
+    EZ_OUT_02.blink(250, 250, 350, 4);
     Serial.println("Sistema DESARMADO");
   }
   else
@@ -463,6 +489,48 @@ void WifiLoop()
   }
 }
 
+void RFIDloop()
+{
+
+  if (rfid.PICC_IsNewCardPresent())
+  { // new tag is available
+    if (rfid.PICC_ReadCardSerial())
+    { // NUID has been readed
+      MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
+      Serial.print("RFID/NFC Tag Type: ");
+      Serial.println(rfid.PICC_GetTypeName(piccType));
+
+      // print UID in Serial Monitor in the hex format
+      Serial.print("UID:");
+
+      String tag_id = String(rfid.uid.uidByte[0], HEX) + String(rfid.uid.uidByte[1], HEX) + String(rfid.uid.uidByte[2], HEX) + String(rfid.uid.uidByte[3], HEX);
+      tag_id.toUpperCase();
+      Serial.println(tag_id);
+
+      int nz = sizeof(KeysUID) / sizeof(KeysUID);
+
+      // Scan all zones to get their status
+      for (int i = 0; i < nz; i++)
+      {
+        
+        if (tag_id == KeysUID[i])
+        {
+          Serial.println((tag_id + F(" Key found.")));
+          DisarmSystem();
+          break;
+        }
+        else
+        {
+        Serial.println((tag_id + F(" Key NOT found.")));
+        }
+      }
+
+      rfid.PICC_HaltA();      // halt PICC
+      rfid.PCD_StopCrypto1(); // stop encryption on PCD
+    }
+  }
+}
+
 void loop()
 {
   MainLED.loop();
@@ -472,4 +540,5 @@ void loop()
   CheckStatusSystem();
   WifiLoop();
   // delay(1000);
+  RFIDloop();
 }
