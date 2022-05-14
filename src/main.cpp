@@ -51,7 +51,7 @@ float zone_threshold = 25;        // 25%
 
 ezOutput MainLED(LED);
 ezOutput EZ_OUT_01(OUT_01); // Best used to connect a buzzer
-ezOutput EZ_OUT_02(OUT_02); // Best used to connect a buzzer
+ezOutput EZ_OUT_02(OUT_02); // Best used to connect a buzzer / siren
 
 /**/
 const char CONFIG[] PROGMEM = R"(
