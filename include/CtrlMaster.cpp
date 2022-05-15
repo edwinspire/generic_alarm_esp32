@@ -148,33 +148,7 @@ void GetZoneStatus(int numzone)
       Serial.print(String(zones[numzone].zone_label) + " No implemented sensor type " + String(zones[numzone].sensor_type) + "\n\r");
       break;
     }
-    /*
-        if (valuez > upper_threshold && zones[numzone].sensor_type == SensorType::NORMALLY_CLOSED)
-        {
-          zones[numzone].status = Zone::Status::TROUBLE;
-          //     Serial.print(zones[numzone].zone_label + " NORMAL > " + String(valuez) + "\n\r");
-        }
-        else if (valuez > lower_threshold && valuez < upper_threshold && zones[numzone].sensor_type == SensorType::NORMALLY_OPEN)
-        {
-          //      Serial.print(zones[numzone].zone_label + " NORMAL > " + String(valuez) + "\n\r");
-          zones[numzone].status = Zone::Status::NORMAL;
-        }
-        else if (valuez > upper_threshold && zones[numzone].sensor_type == SensorType::NORMALLY_OPEN)
-        {
-          // Serial.print(zones[numzone].zone_label + " TROUBLE > " + String(valuez) + "\n\r");
-          zones[numzone].status = Zone::Status::TROUBLE;
-        }
-        else if (valuez > lower_threshold && valuez < upper_threshold && zones[numzone].sensor_type == SensorType::NORMALLY_CLOSED)
-        {
-          //      Serial.print(zones[numzone].zone_label + " ALARM > " + String(valuez) + "\n\r");
-          zones[numzone].status = Zone::Status::ALARM;
-        }
-        else if (valuez <= lower_threshold)
-        {
-          Serial.print(zones[numzone].zone_label + " TROUBLE > " + String(valuez) + "\n\r");
-          zones[numzone].status = Zone::Status::ALARM;
-        }
-        */
+
   }
 }
 
