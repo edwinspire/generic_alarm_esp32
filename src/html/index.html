@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ESP32 Generic Alarm</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        html {
+            font-family: Arial, Helvetica, sans-serif;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: white;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #143642;
+        }
+
+        .topnav {
+            overflow: hidden;
+            background-color: #143642;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        .card {
+            background-color: #f8f7f9;
+            box-shadow: 2px 2px 12px 1px rgba(140, 140, 140, 0.5);
+            padding-top: 10px;
+            padding-bottom: 20px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: 0.4s;
+            transition: 0.4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: 0.4s;
+            transition: 0.4s;
+        }
+
+        input:checked+.slider {
+            background-color: #2196f3;
+        }
+
+        input:checked+.slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
+
+        .slider.round {
+            border-radius: 34px;
+        }
+
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            width: -webkit-fill-available;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #DDD;
+        }
+
+        tr:hover {
+            background-color: #D6EEEE;
+        }
+
+        .on_memory_alarm {
+            background-color: orangered;
+        }
+
+        .on_alarm {
+            background-color: rgb(219, 25, 25);
+        }
+
+        .content {
+            padding: 30px;
+            max-width: 75%;
+            margin: 0 auto;
+        }
+    </style>
+    <title>ESP Web Server</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+</head>
+
+<body>
+    <div class="topnav">
+        <h1>ESP32 WebSocket Server</h1>
+    </div>
+    <div class="content">
+        <div class="card" id="CardStatus">
+            <h2>Arm Status</h2>
+            <div>
+                <label class="switch">
+                    <input type="checkbox" checked id="ArmStatus" />
+                    <span class="slider "></span>
+                </label>
+            </div>
+        </div>
+        </p>
+        <div class="card">
+
+            <h2>Zone Status</h2>
+            <p>Muestra el estado general de las zonas</p>
+
+            <table>
+                <tr>
+                    <th>GPIO</th>
+                    <th>Label</th>
+                    <th>Status</th>
+                    <th>Sensor Type</th>
+                    <th>Definition</th>
+                    <th>Chime</th>
+                    <th>Attributes</th>
+                    <th>Memory</th>
+                </tr>
+                <tr>
+                    <td id="c_1_1">-</td>
+                    <td id="c_1_2">-</td>
+                    <td id="c_1_3">-</td>
+                    <td id="c_1_4">-</td>
+                    <td id="c_1_5">-</td>
+                    <td id="c_1_6">-</td>
+                    <td id="c_1_7">-</td>
+                    <td id="c_1_8">-</td>
+                </tr>
+                <tr>
+                    <td id="c_2_1">-</td>
+                    <td id="c_2_2">-</td>
+                    <td id="c_2_3">-</td>
+                    <td id="c_2_4">-</td>
+                    <td id="c_2_5">-</td>
+                    <td id="c_2_6">-</td>
+                    <td id="c_2_7">-</td>
+                    <td id="c_2_8">-</td>
+                </tr>
+                <tr>
+                    <td id="c_3_1">-</td>
+                    <td id="c_3_2">-</td>
+                    <td id="c_3_3">-</td>
+                    <td id="c_3_4">-</td>
+                    <td id="c_3_5">-</td>
+                    <td id="c_3_6">-</td>
+                    <td id="c_3_7">-</td>
+                    <td id="c_3_8">-</td>
+                </tr>
+            </table>
+
+        </div>
+
+    </div>
+    <script>
+        var gateway = `ws://${window.location.hostname}/ws`;
+        var websocket;
+        window.addEventListener("load", onLoad);
+        function initWebSocket() {
+            console.log("Trying to open a WebSocket connection...");
+            websocket = new WebSocket(gateway);
+            websocket.onopen = onOpen;
+            websocket.onclose = onClose;
+            websocket.onmessage = onMessage; // <-- add this line
+        }
+        function onOpen(event) {
+            console.log("Connection opened");
+        }
+        function onClose(event) {
+            console.log("Connection closed");
+            setTimeout(initWebSocket, 2000);
+        }
+        function onMessage(event) {
+            var state;
+            //console.log('Message received: ' + event.data);
+            try {
+                let data = JSON.parse(event.data);
+                console.log(data);
+                let inputArmStatus = document.getElementById("ArmStatus");
+                let CardStatus = document.getElementById("CardStatus");
+
+
+                if (data.armed_status == 0) {
+                    inputArmStatus.checked = false;
+                } else {
+                    inputArmStatus.checked = true;
+                }
+
+                if (data.alarm_audible > 0 || data.alarm_pulsed > 0 || data.alarm_silent > 0 || data.alarm_zone > 0) {
+                    CardStatus.style.backgroundColor = "red";
+                } else if (data.alarm_memory > 0) {
+                    CardStatus.style.backgroundColor = "orange";
+                } else {
+                    CardStatus.style.backgroundColor = "white";
+                }
+
+
+                if (data.zones && Array.isArray(data.zones)) {
+                    data.zones.forEach((item, i) => {
+
+                        document.getElementById(`c_${i + 1}_1`).innerHTML = item.gpio;
+                        document.getElementById(`c_${i + 1}_2`).innerHTML = item.zone_label;
+                        let status = "?";
+
+                        switch (item.status) {
+                            case 0:
+                                status = "TROUBLE";
+                                break;
+                            case 1:
+                                status = "NORMAL";
+                                break;
+                            case 2:
+                                status = "ALARM";
+                                break;
+                            default:
+                                status = "UNDEFINED";
+                                break;
+                        }
+                        document.getElementById(`c_${i + 1}_3`).innerHTML = status;
+
+                        let sensorType = "?";
+
+                        switch (item.sensor_type) {
+                            case 0:
+                                sensorType = "NORMALLY OPEN";
+                                break;
+                            case 1:
+                                sensorType = "NORMALLY CLOSED";
+                                break;
+                            default:
+                                sensorType = "UNDEFINED";
+                                break;
+                        }
+                        document.getElementById(`c_${i + 1}_4`).innerHTML = sensorType;
+
+                        let definition = "?";
+
+                        switch (item.definition) {
+                            case 0:
+                                definition = "NO USED";
+                                break;
+                            case 1:
+                                definition = "DELAY";
+                                break;
+                            case 2:
+                                definition = "INSTANT";
+                                break;
+                            case 3:
+                                definition = "INTERIOR";
+                                break;
+                            case 4:
+                                definition = "ALWAYS ARMED";
+                                break;
+                            case 5:
+                                definition = "KEYSWITCH ARM";
+                                break;
+                            case 6:
+                                definition = "MOMENTARY KEYSWITCH ARM";
+                                break;
+                            default:
+                                definition = "UNDEFINED";
+                                break;
+                        }
+                        document.getElementById(`c_${i + 1}_5`).innerHTML = definition;
+
+                        let chime = false;
+
+                        if (item.chime) {
+                            document.getElementById(`c_${i + 1}_6`).innerHTML = "TRUE";
+                        } else {
+                            document.getElementById(`c_${i + 1}_6`).innerHTML = "FALSE";
+                        }
+
+                        let attr = "?";
+                        switch (item.attributes) {
+                            case 0:
+                                attr = "AUDIBLE";
+                                break;
+                            case 1:
+                                attr = "SILENT";
+                                break;
+                            case 2:
+                                attr = "PULSED";
+                                break;
+                            case 3:
+                                attr = "NONE";
+                                break;
+                            default:
+                                attr = "UNDEFINED";
+                                break;
+                        }
+                        document.getElementById(`c_${i + 1}_7`).innerHTML = attr;
+
+                        if (item.memory_alarm) {
+                            document.getElementById(`c_${i + 1}_8`).innerHTML = "TRUE";
+                        } else {
+                            document.getElementById(`c_${i + 1}_8`).innerHTML = "FALSE";
+                        }
+
+                    });
+                }
+
+            } catch (error) {
+                console.error(error, event.data);
+            }
+        }
+        function onLoad(event) {
+            initWebSocket();
+            initButton();
+        }
+        function initButton() {
+            document.getElementById("ArmStatus").addEventListener("change", toggle);
+        }
+        function toggle() {
+            websocket.send("toggle");
+        }
+    </script>
+</body>
+
+</html>
