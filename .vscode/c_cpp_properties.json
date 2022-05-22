@@ -10,6 +10,7 @@
             "includePath": [
                 "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/include",
                 "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/src",
+                "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/SPIFFS/src",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/SD/src",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src",
                 "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/.pio/libdeps/esp32doit-devkit-v1/ESPAsyncWebServer-esphome/src",
@@ -210,7 +211,6 @@
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/Preferences/src",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/RainMaker/src",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/SD_MMC/src",
-                "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/SPIFFS/src",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/SimpleBLE/src",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/Ticker/src",
                 "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/USB/src",
@@ -226,6 +226,7 @@
                 "path": [
                     "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/include",
                     "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/src",
+                    "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/SPIFFS/src",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/SD/src",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src",
                     "d:/edwinspire/proyectos/Node/generic_alarm_esp32/generic_alarm_esp32/.pio/libdeps/esp32doit-devkit-v1/ESPAsyncWebServer-esphome/src",
@@ -426,7 +427,6 @@
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/Preferences/src",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/RainMaker/src",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/SD_MMC/src",
-                    "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/SPIFFS/src",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/SimpleBLE/src",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/Ticker/src",
                     "C:/Users/edelacruz/.platformio/packages/framework-arduinoespressif32/libraries/USB/src",

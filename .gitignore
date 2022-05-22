@@ -33,3 +33,6 @@
 
 #
 .pio/*
+
+#
+node_modules

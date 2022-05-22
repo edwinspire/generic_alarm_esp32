@@ -26,7 +26,8 @@ ezOutput EZ_OUT_02(OUT_02); // Best used to connect a buzzer / siren
 enum SensorType
 {
   NORMALLY_OPEN,
-  NORMALLY_CLOSED
+  NORMALLY_CLOSED,
+  SOFT_BUTTON
 };
 
 namespace Zone
@@ -92,20 +93,23 @@ struct SystemStatus
   volatile uint alarm_pulsed;
   volatile uint alarm_zone;
   volatile uint alarm_memory;
+  volatile int output_02;
 };
 
 SystemStatus system_status = {SystemArmedStatus::UNDEFINED, false};
 SystemStatus system_status_last = {SystemArmedStatus::UNDEFINED, false};
 
-Zone::Config zones[2] = {
+Zone::Config zones[3] = {
     {Zone01, "Zone 01", 250, 0, Zone::Status::UNDEFINED, SensorType::NORMALLY_OPEN, Zone::Definition::INSTANT, true, Zone::Attributes::AUDIBLE},
-    {Zone02, "Zone 02", 500, 0, Zone::Status::UNDEFINED, SensorType::NORMALLY_OPEN, Zone::Definition::ALWAYS_ARMED, false, Zone::Attributes::PULSED}};
+    {Zone02, "Zone 02", 500, 0, Zone::Status::UNDEFINED, SensorType::NORMALLY_OPEN, Zone::Definition::ALWAYS_ARMED, false, Zone::Attributes::PULSED},
+    {1000, "Panic", 500, 0, Zone::Status::UNDEFINED, SensorType::SOFT_BUTTON, Zone::Definition::ALWAYS_ARMED, false, Zone::Attributes::PULSED}};
 
 // Get status zone
 bool GetZoneStatus(int numzone)
 {
   bool Change = false;
-  if (millis() - zones[numzone].last_time > zones[numzone].interval && zones[numzone].definition != Zone::Definition::NO_USED)
+  // numzone > 1000 only soft button
+  if (zones[numzone].gpio < 1000 && millis() - zones[numzone].last_time > zones[numzone].interval && zones[numzone].definition != Zone::Definition::NO_USED)
   {
 
     Zone::Config zone_last = zones[numzone];
@@ -381,5 +385,8 @@ bool SystemStatusLoop()
 
   ProcessZoneStatus(nz);
   CheckKeySwitchZone(nz);
-  return ZoneChanged;
+
+  system_status.output_02 = EZ_OUT_02.getState();
+
+  return ZoneChanged || system_status_last.output_02 != system_status.output_02;
 }

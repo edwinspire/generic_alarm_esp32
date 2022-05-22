@@ -6,205 +6,39 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 #include "CtrlMaster.cpp"
+#include "SPIFFS.h"
 /*
   SD card test for esp32
- 
+
   This example shows how use the utility libraries
- 
+
   The circuit:
     SD card attached to SPI bus as follows:
         SS    = 5;
         MOSI  = 23;
         MISO  = 19;
         SCK   = 18;
- 
- 
+
+
    by Mischianti Renzo <https://www.mischianti.org>
-  
+
    https://www.mischianti.org
 */
 // include the SD library:
-#include <SPI.h>
-#include <SD.h>
-// WeMos D1 esp8266: D8 as standard
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
 const int chipSelect = SS;
- 
-void printDirectory(File dir, int numTabs);
- 
 
 // Set Wifi AP - these to your desired credentials.
 const char *ssid = "edwinspire";
-const char *password = "Caracol1980";
+const char *password = "1234567";
 
 // WiFiServer server(80);
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer HttpServer(80);
 AsyncWebSocket ws("/ws");
-
-const char index_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE html><html><head><title>ESP32 Generic Alarm</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{font-family:Arial,Helvetica,sans-serif;text-align:center}h1{font-size:1.8rem;color:#fff}h2{font-size:1.5rem;font-weight:700;color:#143642}.topnav{overflow:hidden;background-color:#143642}body{margin:0}.card{background-color:#f8f7f9;box-shadow:2px 2px 12px 1px rgba(140,140,140,.5);padding-top:10px;padding-bottom:20px}.switch{position:relative;display:inline-block;width:60px;height:34px}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#ccc;-webkit-transition:.4s;transition:.4s}.slider:before{position:absolute;content:"";height:26px;width:26px;left:4px;bottom:4px;background-color:#fff;-webkit-transition:.4s;transition:.4s}input:checked+.slider{background-color:#2196f3}input:checked+.slider:before{-webkit-transform:translateX(26px);-ms-transform:translateX(26px);transform:translateX(26px)}.slider.round{border-radius:34px}.slider.round:before{border-radius:50%}table{border-collapse:collapse;width:100%;width:-webkit-fill-available}td,th{padding:8px;text-align:left;border-bottom:1px solid #ddd}tr:hover{background-color:#d6eeee}.on_memory_alarm{background-color:#ff4500}.on_alarm{background-color:#db1919}.content{padding:30px;max-width:75%;margin:0 auto}</style><title>ESP Web Server</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"></head><body><div class="topnav"><h1>ESP32 WebSocket Server</h1></div><div class="content"><div class="card" id="CardStatus"><h2>Arm Status</h2><div><label class="switch"><input type="checkbox" checked id="ArmStatus"> <span class="slider"></span></label></div></div><p></p><div class="card"><h2>Zone Status</h2><p>Muestra el estado general de las zonas</p><table><tr><th>GPIO</th><th>Label</th><th>Status</th><th>Sensor Type</th><th>Definition</th><th>Chime</th><th>Attributes</th><th>Memory</th></tr><tr><td id="c_1_1">-</td><td id="c_1_2">-</td><td id="c_1_3">-</td><td id="c_1_4">-</td><td id="c_1_5">-</td><td id="c_1_6">-</td><td id="c_1_7">-</td><td id="c_1_8">-</td></tr><tr><td id="c_2_1">-</td><td id="c_2_2">-</td><td id="c_2_3">-</td><td id="c_2_4">-</td><td id="c_2_5">-</td><td id="c_2_6">-</td><td id="c_2_7">-</td><td id="c_2_8">-</td></tr><tr><td id="c_3_1">-</td><td id="c_3_2">-</td><td id="c_3_3">-</td><td id="c_3_4">-</td><td id="c_3_5">-</td><td id="c_3_6">-</td><td id="c_3_7">-</td><td id="c_3_8">-</td></tr></table></div></div><script>var gateway = `ws://${window.location.hostname}/ws`;
-        var websocket;
-        window.addEventListener("load", onLoad);
-        function initWebSocket() {
-            console.log("Trying to open a WebSocket connection...");
-            websocket = new WebSocket(gateway);
-            websocket.onopen = onOpen;
-            websocket.onclose = onClose;
-            websocket.onmessage = onMessage; // <-- add this line
-        }
-        function onOpen(event) {
-            console.log("Connection opened");
-        }
-        function onClose(event) {
-            console.log("Connection closed");
-            setTimeout(initWebSocket, 2000);
-        }
-        function onMessage(event) {
-            var state;
-            //console.log('Message received: ' + event.data);
-            try {
-                let data = JSON.parse(event.data);
-                console.log(data);
-                let inputArmStatus = document.getElementById("ArmStatus");
-                let CardStatus = document.getElementById("CardStatus");
-
-
-                if (data.armed_status == 0) {
-                    inputArmStatus.checked = false;
-                } else {
-                    inputArmStatus.checked = true;
-                }
-
-                if (data.alarm_audible > 0 || data.alarm_pulsed > 0 || data.alarm_silent > 0 || data.alarm_zone > 0) {
-                    CardStatus.style.backgroundColor = "red";
-                } else if (data.alarm_memory > 0) {
-                    CardStatus.style.backgroundColor = "orange";
-                } else {
-                    CardStatus.style.backgroundColor = "white";
-                }
-
-
-                if (data.zones && Array.isArray(data.zones)) {
-                    data.zones.forEach((item, i) => {
-
-                        document.getElementById(`c_${i + 1}_1`).innerHTML = item.gpio;
-                        document.getElementById(`c_${i + 1}_2`).innerHTML = item.zone_label;
-                        let status = "?";
-
-                        switch (item.status) {
-                            case 0:
-                                status = "TROUBLE";
-                                break;
-                            case 1:
-                                status = "NORMAL";
-                                break;
-                            case 2:
-                                status = "ALARM";
-                                break;
-                            default:
-                                status = "UNDEFINED";
-                                break;
-                        }
-                        document.getElementById(`c_${i + 1}_3`).innerHTML = status;
-
-                        let sensorType = "?";
-
-                        switch (item.sensor_type) {
-                            case 0:
-                                sensorType = "NORMALLY OPEN";
-                                break;
-                            case 1:
-                                sensorType = "NORMALLY CLOSED";
-                                break;
-                            default:
-                                sensorType = "UNDEFINED";
-                                break;
-                        }
-                        document.getElementById(`c_${i + 1}_4`).innerHTML = sensorType;
-
-                        let definition = "?";
-
-                        switch (item.definition) {
-                            case 0:
-                                definition = "NO USED";
-                                break;
-                            case 1:
-                                definition = "DELAY";
-                                break;
-                            case 2:
-                                definition = "INSTANT";
-                                break;
-                            case 3:
-                                definition = "INTERIOR";
-                                break;
-                            case 4:
-                                definition = "ALWAYS ARMED";
-                                break;
-                            case 5:
-                                definition = "KEYSWITCH ARM";
-                                break;
-                            case 6:
-                                definition = "MOMENTARY KEYSWITCH ARM";
-                                break;
-                            default:
-                                definition = "UNDEFINED";
-                                break;
-                        }
-                        document.getElementById(`c_${i + 1}_5`).innerHTML = definition;
-
-                        let chime = false;
-
-                        if (item.chime) {
-                            document.getElementById(`c_${i + 1}_6`).innerHTML = "TRUE";
-                        } else {
-                            document.getElementById(`c_${i + 1}_6`).innerHTML = "FALSE";
-                        }
-
-                        let attr = "?";
-                        switch (item.attributes) {
-                            case 0:
-                                attr = "AUDIBLE";
-                                break;
-                            case 1:
-                                attr = "SILENT";
-                                break;
-                            case 2:
-                                attr = "PULSED";
-                                break;
-                            case 3:
-                                attr = "NONE";
-                                break;
-                            default:
-                                attr = "UNDEFINED";
-                                break;
-                        }
-                        document.getElementById(`c_${i + 1}_7`).innerHTML = attr;
-
-                        if (item.memory_alarm) {
-                            document.getElementById(`c_${i + 1}_8`).innerHTML = "TRUE";
-                        } else {
-                            document.getElementById(`c_${i + 1}_8`).innerHTML = "FALSE";
-                        }
-
-                    });
-                }
-
-            } catch (error) {
-                console.error(error, event.data);
-            }
-        }
-        function onLoad(event) {
-            initWebSocket();
-            initButton();
-        }
-        function initButton() {
-            document.getElementById("ArmStatus").addEventListener("change", toggle);
-        }
-        function toggle() {
-            websocket.send("toggle");
-        }</script></body></html>
-)rawliteral";
 
 void notifyClients()
 {
@@ -216,6 +50,7 @@ void notifyClients()
   doc["alarm_silent"] = system_status.alarm_silent;
   doc["alarm_zone"] = system_status.alarm_zone;
   doc["alarm_memory"] = system_status.alarm_memory;
+  doc["output_02"] = system_status.output_02;
 
   int nz = sizeof(zones) / sizeof(Zone::Config);
   int num_zone = 0;
@@ -245,23 +80,46 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
   {
     data[len] = 0;
+
+    Serial.println((char *)data);
+
+    DynamicJsonDocument ws_request(1024);
+    DeserializationError error = deserializeJson(ws_request, (char *)data);
+
+    Serial.println(error.c_str());
+
+    if (ws_request["armed_status"] == 0)
+    {
+      DisarmSystem();
+    }
+    else
+    {
+      ArmSystem();
+    }
+
+notifyClients();
+
+/*
     if (strcmp((char *)data, "toggle") == 0)
     {
       // ledState = !ledState;
       Serial.print("Cambiar estado");
 
-      if (system_status.armed_status == SystemArmedStatus::ARMED)
-      {
-        DisarmSystem();
-      }
-      else
-      {
-        ArmSystem();
-      }
+      
+            if (system_status.armed_status == SystemArmedStatus::ARMED)
+            {
+              DisarmSystem();
+            }
+            else
+            {
+              ArmSystem();
+            }
+            
 
       // Se mantiene esta notificación porque en el loop proncipal no se logra detectar el cambio de estado
       notifyClients();
     }
+    */
   }
 }
 
@@ -309,6 +167,99 @@ String processor(const String &var)
   return String();
 }
 
+void printDirectory(File dir, int numTabs)
+{
+  while (true)
+  {
+
+    File entry = dir.openNextFile();
+    if (!entry)
+    {
+      // no more files
+      break;
+    }
+    for (uint8_t i = 0; i < numTabs; i++)
+    {
+      Serial.print('\t');
+    }
+    Serial.print(entry.name());
+    if (entry.isDirectory())
+    {
+      Serial.println("/");
+      printDirectory(entry, numTabs + 1);
+    }
+    else
+    {
+      // files have sizes, directories do not
+      Serial.print("\t\t");
+      Serial.print(entry.size(), DEC);
+      time_t lw = entry.getLastWrite();
+      struct tm *tmstruct = localtime(&lw);
+      Serial.printf("\tLAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n", (tmstruct->tm_year) + 1900, (tmstruct->tm_mon) + 1, tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min, tmstruct->tm_sec);
+    }
+    entry.close();
+  }
+}
+
+void initSDCard()
+{
+  //  if (!SD.begin(SS))
+  if (!SD.begin(SS))
+  {
+    Serial.println("Card Mount Failed");
+    return;
+  }
+  uint8_t cardType = SD.cardType();
+
+  if (cardType == CARD_NONE)
+  {
+    Serial.println("No SD card attached");
+    return;
+  }
+
+  Serial.print("SD Card Type: ");
+  if (cardType == CARD_MMC)
+  {
+    Serial.println("MMC");
+  }
+  else if (cardType == CARD_SD)
+  {
+    Serial.println("SDSC");
+  }
+  else if (cardType == CARD_SDHC)
+  {
+    Serial.println("SDHC");
+  }
+  else
+  {
+    Serial.println("UNKNOWN");
+  }
+
+  Serial.print("Card size:  ");
+  Serial.println((float)SD.cardSize() / 1000);
+
+  Serial.print("Total bytes: ");
+  Serial.println(SD.totalBytes());
+
+  Serial.print("Used bytes: ");
+  Serial.println(SD.usedBytes());
+  // File dir = SD.open("/");
+  // printDirectory(dir, 0);
+}
+
+void initWiFi()
+{
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi ..");
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print('.');
+    delay(1000);
+  }
+  Serial.println(WiFi.localIP());
+}
+
 void WifiWebSocketServerSetup()
 {
   // Connect to Wi-Fi
@@ -323,10 +274,11 @@ void WifiWebSocketServerSetup()
   Serial.println(WiFi.localIP());
 
   initWebSocket();
-  // Route for root / web page
-  HttpServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-                { request->send_P(200, "text/html", index_html, processor); });
 
+  HttpServer.serveStatic("/", SD, "/webserver/public/").setDefaultFile("index.html");
+
+  HttpServer.onNotFound([](AsyncWebServerRequest *request)
+                        { request->send(404, "text/plain", F("The content you are looking for was not found. Check SDCard")); });
   // Start server
   HttpServer.begin();
 }
@@ -337,87 +289,9 @@ void setup()
 
   Serial.begin(115200);
   system_status.armed_status = SystemArmedStatus::UNDEFINED;
+
+  initSDCard();
   WifiWebSocketServerSetup();
-  // BTESetup();
-
-  Serial.print("\nInitializing SD card...");
- 
-  // we'll use the initialization code from the utility libraries
-  // since we're just testing if the card is working!
-  if (!SD.begin(SS)) {
-    Serial.println("initialization failed. Things to check:");
-    Serial.println("* is a card inserted?");
-    Serial.println("* is your wiring correct?");
-    Serial.println("* did you change the chipSelect pin to match your shield or module?");
-    while (1);
-  } else {
-    Serial.println("Wiring is correct and a card is present.");
-  }
- 
-  // print the type of card
-  Serial.println();
-  Serial.print("Card type:         ");
-  switch (SD.cardType()) {
-    case CARD_NONE:
-      Serial.println("NONE");
-      break;
-    case CARD_MMC:
-      Serial.println("MMC");
-      break;
-    case CARD_SD:
-      Serial.println("SD");
-      break;
-    case CARD_SDHC:
-      Serial.println("SDHC");
-      break;
-    default:
-      Serial.println("Unknown");
-  }
- 
-  // print the type and size of the first FAT-type volume
-//  uint32_t volumesize;
-//  Serial.print("Volume type is:    FAT");
-//  Serial.println(SDFS.usefatType(), DEC);
- 
-  Serial.print("Card size:  ");
-  Serial.println((float)SD.cardSize()/1000);
- 
-  Serial.print("Total bytes: ");
-  Serial.println(SD.totalBytes());
- 
-  Serial.print("Used bytes: ");
-  Serial.println(SD.usedBytes());
- 
-  File dir =  SD.open("/");
-  printDirectory(dir, 0);
-
-}
-
-void printDirectory(File dir, int numTabs) {
-  while (true) {
- 
-    File entry =  dir.openNextFile();
-    if (! entry) {
-      // no more files
-      break;
-    }
-    for (uint8_t i = 0; i < numTabs; i++) {
-      Serial.print('\t');
-    }
-    Serial.print(entry.name());
-    if (entry.isDirectory()) {
-      Serial.println("/");
-      printDirectory(entry, numTabs + 1);
-    } else {
-      // files have sizes, directories do not
-      Serial.print("\t\t");
-      Serial.print(entry.size(), DEC);
-      time_t lw = entry.getLastWrite();
-      struct tm * tmstruct = localtime(&lw);
-      Serial.printf("\tLAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n", (tmstruct->tm_year) + 1900, (tmstruct->tm_mon) + 1, tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min, tmstruct->tm_sec);
-    }
-    entry.close();
-  }
 }
 
 void loop()
@@ -432,6 +306,4 @@ void loop()
   {
     notifyClients();
   }
-  // RFIDloop();
-  // BTELoop();
 }
