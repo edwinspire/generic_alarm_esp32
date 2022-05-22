@@ -32,7 +32,7 @@ const int chipSelect = SS;
 
 // Set Wifi AP - these to your desired credentials.
 const char *ssid = "edwinspire";
-const char *password = "1234567";
+const char *password = "Caracol1980";
 
 // WiFiServer server(80);
 
@@ -88,38 +88,61 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 
     Serial.println(error.c_str());
 
-    if (ws_request["armed_status"] == 0)
+    if (ws_request["armed_status"] >= 0)
     {
-      DisarmSystem();
-    }
-    else
-    {
-      ArmSystem();
-    }
-
-notifyClients();
-
-/*
-    if (strcmp((char *)data, "toggle") == 0)
-    {
-      // ledState = !ledState;
-      Serial.print("Cambiar estado");
-
-      
-            if (system_status.armed_status == SystemArmedStatus::ARMED)
-            {
-              DisarmSystem();
-            }
-            else
-            {
-              ArmSystem();
-            }
-            
-
-      // Se mantiene esta notificación porque en el loop proncipal no se logra detectar el cambio de estado
+      if (ws_request["armed_status"] == 0)
+      {
+        DisarmSystem();
+      }
+      else
+      {
+        ArmSystem();
+      }
       notifyClients();
     }
-    */
+    else if (ws_request["action"] == "softbutton" && ws_request["zone"]["gpio"] >= 1000)
+    {
+      int nz = sizeof(zones) / sizeof(Zone::Config);
+      Serial.println("Softbutton Press");
+      // Scan all zones to get their status
+      for (int i = 0; i < nz; i++)
+      {
+        if (zones[i].gpio == ws_request["zone"]["gpio"])
+        {
+          if (ws_request["zone"]["status"] == 1)
+          {
+            zones[i].status = Zone::Status::NORMAL;
+          }
+          else if (ws_request["zone"]["status"] == 2)
+          {
+            zones[i].status = Zone::Status::ALARM;
+          }
+          break;
+        }
+      }
+    }
+
+    /*
+        if (strcmp((char *)data, "toggle") == 0)
+        {
+          // ledState = !ledState;
+          Serial.print("Cambiar estado");
+
+
+                if (system_status.armed_status == SystemArmedStatus::ARMED)
+                {
+                  DisarmSystem();
+                }
+                else
+                {
+                  ArmSystem();
+                }
+
+
+          // Se mantiene esta notificación porque en el loop proncipal no se logra detectar el cambio de estado
+          notifyClients();
+        }
+        */
   }
 }
 

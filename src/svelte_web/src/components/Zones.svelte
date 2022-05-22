@@ -1,5 +1,12 @@
 <script>
   export let zones;
+  import { createEventDispatcher } from "svelte";
+
+  const dispatch = createEventDispatcher();
+
+  function ClickSoftButton(zone) {
+    dispatch("softbutton", { zone: zone });
+  }
 
   /*
     AUDIBLE,
@@ -91,7 +98,19 @@
         {/if}
 
         {#if zone.sensor_type == 2}
-          <td><button type="button">Panic</button></td>
+          <td
+            ><button
+              type="button"
+              on:mouseup={(e) => {
+                zone.status = 1;
+                ClickSoftButton(zone);
+              }}
+              on:click={(e) => {
+                zone.status = 2;
+                ClickSoftButton(zone);
+              }}>Panic</button
+            ></td
+          >
         {:else}
           <td />
         {/if}

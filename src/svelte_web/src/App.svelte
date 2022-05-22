@@ -29,6 +29,7 @@
     }
     websocket.send(JSON.stringify(wsRequest));
   }
+
   function initWebSocket() {
     console.log("Trying to open a WebSocket connection...");
     websocket = new WebSocket(gateway);
@@ -118,7 +119,15 @@
   </div>
 
   <div class="card">
-    <ZonesComponent bind:zones={wsData.zones} />
+    <ZonesComponent
+      bind:zones={wsData.zones}
+      on:softbutton={(e) => {
+        console.log(e);
+        websocket.send(
+          JSON.stringify({ zone: e.detail.zone, action: "softbutton" })
+        );
+      }}
+    />
   </div>
 </div>
 
